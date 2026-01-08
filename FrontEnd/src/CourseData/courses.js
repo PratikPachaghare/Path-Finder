@@ -14,7 +14,7 @@ export const courses = [
   },
   {
     id: 2,
-    title: "Machine Learning Fundamentals",
+    title: "Ai ML  Learning Fundamentals",
     courseId: "Machine_Learning_Fundamentals",
     description: "Understand the core concepts of machine learning and implement algorithms from scratch using Python and popular libraries.",
     duration: "12 weeks",
