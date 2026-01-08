@@ -1,7 +1,7 @@
 export const courses = [
   {
     id: 1,
-    title: "Full-Stack Web Development",
+    title: "Full-Stack backend Web Development",
     courseId: "Full_Stack_Web_Development",
     description: "Learn to build complete web applications with React, Node.js, Express, and MongoDB. Master both frontend and backend development.",
     duration: "16 weeks",
