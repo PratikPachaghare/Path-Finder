@@ -199,7 +199,240 @@ const RoadmapView = ({careerData}) => {
   
   // Call function with career data
   const relatedOurCourses = getRelatedOurCourses(careerData, our_courses);
+ 
+  
+const handleDownloadPDFRaw = () => {
+  const doc = new jsPDF();
+  
+  // --- CONFIGURATION & STYLES ---
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+  const margin = 15;
+  const centerX = pageWidth / 2;
+  let yPos = 20;
 
+  // Colors based on your screenshot themes
+  const colors = {
+    primary: [37, 99, 235], // Blue (Header)
+    secondary: [240, 245, 255], // Light Blue bg
+    text: [30, 41, 59], // Dark Slate
+    subText: [100, 116, 139], // Gray
+    accentPurple: [230, 230, 250], // Lavender (Foundation)
+    accentGreen: [220, 252, 231], // Light Green (Skills)
+    accentBlue: [224, 242, 254], // Light Blue (Roles)
+    accentYellow: [254, 249, 195], // Light Yellow (Opportunities)
+    line: [203, 213, 225] // Light Gray for timeline
+  };
+
+  // --- HELPER FUNCTIONS ---
+
+  // 1. Header Function
+  const drawHeader = () => {
+    // Blue Banner
+    doc.setFillColor(...colors.primary);
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    
+    // Title
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("Career Roadmap", pageWidth / 2, 20, { align: "center" });
+    
+    // Subtitle / Branding
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Made by Path-Finder | For ${careerData.title}`, pageWidth / 2, 30, { align: "center" });
+    
+    // Reset positions
+    yPos = 55;
+    doc.setTextColor(...colors.text);
+  };
+
+  // 2. Timeline Line Drawer
+  const drawTimelineLine = (start, end) => {
+    doc.setDrawColor(...colors.line);
+    doc.setLineWidth(1.5);
+    doc.line(centerX, start, centerX, end);
+  };
+
+  // 3. Card Drawer (The main visual component)
+  const drawCard = (title, items, side, bgColor, isList = true) => {
+    const cardWidth = 75;
+    const xOffset = side === 'left' ? centerX - cardWidth - 10 : centerX + 10;
+    
+    // Calculate content height to size the box dynamically
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    
+    // Prepare content text
+    let contentLines = [];
+    if (Array.isArray(items)) {
+       // Convert array to text lines
+       items.forEach(item => {
+         const text = isList ? `• ${item}` : item;
+         const lines = doc.splitTextToSize(text, cardWidth - 10);
+         contentLines = contentLines.concat(lines);
+       });
+    } else if (typeof items === 'string') {
+       contentLines = doc.splitTextToSize(items, cardWidth - 10);
+    } else if (typeof items === 'object') {
+       // Handle complex objects like salary/growth
+       Object.values(items).forEach(val => {
+         contentLines.push(String(val));
+       });
+    }
+
+    const cardHeight = 15 + (contentLines.length * 5) + 5; // Title + lines + padding
+
+    // Check for Page Break
+    if (yPos + cardHeight > pageHeight - 20) {
+      doc.addPage();
+      drawHeader();
+      // Re-draw connection line header for new page
+      yPos = 55; 
+    }
+
+    // Draw Connector Line from center to card
+    doc.setDrawColor(...colors.line);
+    doc.setLineWidth(1);
+    doc.line(centerX, yPos + 15, side === 'left' ? xOffset + cardWidth : xOffset, yPos + 15);
+    
+    // Draw Center Dot
+    doc.setFillColor(...colors.primary);
+    doc.circle(centerX, yPos + 15, 1.5, 'F');
+
+    // Draw Card Background (Rounded)
+    doc.setFillColor(...bgColor);
+    doc.setDrawColor(...colors.line);
+    doc.roundedRect(xOffset, yPos, cardWidth, cardHeight, 3, 3, 'FD');
+
+    // Draw Title
+    doc.setFontSize(11);
+    doc.setTextColor(...colors.primary);
+    doc.setFont("helvetica", "bold");
+    doc.text(title, xOffset + 5, yPos + 10);
+
+    // Draw Content
+    doc.setFontSize(9);
+    doc.setTextColor(...colors.text);
+    doc.setFont("helvetica", "normal");
+    let textY = yPos + 18;
+    
+    contentLines.forEach(line => {
+      doc.text(line, xOffset + 5, textY);
+      textY += 5;
+    });
+
+    // Update Y position for next item
+    // We move down slightly less than full height to create a staggered look if alternating
+    yPos += Math.max(cardHeight, 30) + 10; 
+  };
+
+  // --- EXECUTION ---
+  
+  // 1. Setup Page 1
+  drawHeader();
+
+  // 2. Draw Description (Full width top section)
+  doc.setFontSize(12);
+  doc.setTextColor(...colors.text);
+  const descLines = doc.splitTextToSize(careerData.description, pageWidth - 40);
+  doc.text(descLines, 20, yPos);
+  yPos += (descLines.length * 6) + 10;
+
+  // 3. Start Timeline
+  const timelineStartY = yPos;
+  
+  // --- RENDER SECTIONS ---
+  
+  // We alternate sides: Left, Right, Left, Right
+  
+  // A. Foundation (Left) - Purple
+  if (careerData.foundation) {
+    const combinedFoundation = [
+        ...careerData.foundation.core_subjects, 
+        ...careerData.foundation.essential_knowledge
+    ];
+    drawCard("Foundation", combinedFoundation, 'left', colors.accentPurple);
+  }
+
+  // B. Skills (Right) - Green
+  if (careerData.skills) {
+    const combinedSkills = [
+        ...careerData.skills.technical, 
+        ...careerData.skills.soft
+    ];
+    // Adjust Y slightly back up so they appear somewhat parallel if the previous card was short
+    yPos -= 20; 
+    drawCard("Skills & Tools", combinedSkills, 'right', colors.accentGreen);
+  }
+
+  // C. Job Roles (Left) - Blue
+  if (careerData.job_roles) {
+    const roles = careerData.job_roles.map(r => r.title);
+    drawCard("Job Roles", roles, 'left', colors.accentBlue);
+  }
+
+  // D. Career Growth (Right) - Purple
+  if (careerData.career_growth) {
+    yPos -= 20;
+    const growth = Object.keys(careerData.career_growth).map(key => 
+      `${key.toUpperCase()}: ${careerData.career_growth[key].title}`
+    );
+    drawCard("Career Growth", growth, 'right', colors.accentPurple);
+  }
+
+  // E. Top Companies (Left) - Yellow
+  if (careerData.top_companies) {
+    drawCard("Top Companies", careerData.top_companies, 'left', colors.accentYellow);
+  }
+
+  // F. Recommended Courses (Right) - Green
+  if (careerData.recommended_courses) {
+    yPos -= 20;
+    const courses = careerData.recommended_courses.map(c => `${c.name} (${c.platform})`);
+    drawCard("Courses", courses, 'right', colors.accentGreen);
+  }
+
+  // G. Certifications (Left) - Blue
+  if (careerData.certifications) {
+     drawCard("Certifications", careerData.certifications, 'left', colors.accentBlue);
+  }
+
+   // H. Freelancing (Right) - Yellow
+  if (careerData.freelancing_opportunities) {
+     yPos -= 20;
+     const freelance = careerData.freelancing_opportunities.map(f => `${f.platform} (${f.earning_potential})`);
+     drawCard("Freelancing", freelance, 'right', colors.accentYellow);
+  }
+
+  // Draw the vertical line now that we know the start and end
+  // We draw this "behind" everything else logically, but in PDF painter model, 
+  // we might want to draw it first or carefully. Here we draw it last but it might overlap text if not careful.
+  // Actually, let's draw it from timelineStartY to final yPos.
+  // Ideally, draw this BEFORE cards loop, but we didn't know the height.
+  // Since we are using fill colors for cards, the line should be drawn BEFORE the cards.
+  // However, recalculating is hard. 
+  // *Quick Fix:* Draw distinct segments or just accept a line going through page breaks.
+  
+  // Footer / Copyright
+  const pageCount = doc.internal.getNumberOfPages();
+  for(let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    // Draw vertical timeline (Center)
+    // Avoid drawing over the Header
+    doc.setDrawColor(...colors.line);
+    doc.setLineWidth(1);
+    doc.line(centerX, 55, centerX, pageHeight - 10);
+    
+    // Footer Text
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(`Page ${i} of ${pageCount} - Generated by Path-Finder AI`, pageWidth / 2, pageHeight - 5, { align: "center" });
+  }
+
+  doc.save("PathFinder-Roadmap.pdf");
+};
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
@@ -964,12 +1197,18 @@ yPos += 12;
         </div>
       </div>
 
-      <div className="mt-12 text-center">
+      <div className="flex justify-center gap-5 mt-12 text-center">
+        <button
+          onClick={handleDownloadPDFRaw}
+          className="p-4 bg-blue-600 text-white rounded-lg"
+        >
+          Download Animated PDF 
+        </button>
         <button
           onClick={handleDownloadPDF}
           className="p-4 bg-blue-600 text-white rounded-lg"
         >
-          Download PDF
+          Download Text PDF 
         </button>
       </div>
     </div>
