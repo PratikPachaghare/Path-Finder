@@ -14,6 +14,7 @@ import RoadmapView from "./components/roadmap/RoadmapView";
 import ChatDashboard from "./components/chatbot/ChatBot";
 import CourseApp from "./components/CourseCom/CourseApp";
 import GenModelsAi from "./components/GenModels/GenModelsAi";
+import ResumeBuilder from "./components/Resume/ResumeBuilder";
 // import CourseVideoPage from "./components/CourseCom/VedioCard";
 
 function ChatBotButton() {
@@ -98,6 +99,8 @@ function App() {
                 <Route path="/consultant" element={<Consultant user={user}/>} />
                 <Route path="/courses" element={<CourseApp />} />
                 <Route path="/predict" element={<GenModelsAi />} />
+                <Route path="/Resume" element={<ResumeBuilder />} />
+                
                 {/* <Route path="/CourseVedio/:courseId" element={<CourseVideoPage />} /> */}
                 <Route path="*" element={<Navigate to="/welcome" />} />
               </Routes>
